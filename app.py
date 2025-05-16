@@ -12,17 +12,27 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET", 'thankyoutonystark#weloveyou3000')
 CORS(app)
 
-# Configure limiter
+# Environment configuration
+ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development')
+DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'
+
+# Configure limiter with different rates for prod/dev
+if ENVIRONMENT == 'production':
+    default_limits = ["200 per day", "50 per hour"]
+else:
+    default_limits = ["1000 per day", "200 per hour"]  # More relaxed limits for development
+
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=default_limits
 )
 
-# Configure caching
+# Configure caching with different timeouts for prod/dev
+cache_timeout = 300 if ENVIRONMENT == 'production' else 60  # 5 mins for prod, 1 min for dev
 cache = Cache(app, config={
     'CACHE_TYPE': 'simple',
-    'CACHE_DEFAULT_TIMEOUT': 300
+    'CACHE_DEFAULT_TIMEOUT': cache_timeout
 })
 
 
@@ -188,5 +198,5 @@ def result():
 
 
 if __name__ == '__main__':
-    app.debug = True
+    app.debug = DEBUG
     app.run(host='0.0.0.0', port=5100, use_reloader=True, threaded=True)

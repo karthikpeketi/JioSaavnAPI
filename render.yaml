@@ -1,12 +1,32 @@
 services:
   - type: web
-    name: jiosaavn-api
+    name: jiosaavn-api-prod
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.8.0
+      - key: ENVIRONMENT
+        value: production
     autoDeploy: true
     healthCheckPath: /
-    plan: free 
+    plan: free
+    branch: main # or master, depending on your default branch name
+
+  - type: web
+    name: jiosaavn-api-dev
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.8.0
+      - key: ENVIRONMENT
+        value: development
+      - key: DEBUG
+        value: "true"
+    autoDeploy: true
+    healthCheckPath: /
+    plan: free
+    branch: develop 
