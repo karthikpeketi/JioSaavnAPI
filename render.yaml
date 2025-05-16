@@ -4,12 +4,17 @@ services:
     env: python
     region: singapore  # Best for Asian traffic
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn -c gunicorn_config.py app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.8.0
       - key: ENVIRONMENT
         value: production
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: jiosaavn-cache
+          property: connectionString
     autoDeploy: true
     healthCheckPath: /
     plan: free
@@ -20,7 +25,7 @@ services:
     env: python
     region: singapore  # Best for Asian traffic
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn -c gunicorn_config.py app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.8.0
@@ -31,4 +36,9 @@ services:
     autoDeploy: true
     healthCheckPath: /
     plan: free
-    branch: develop 
+    branch: develop
+
+  - type: redis
+    name: jiosaavn-cache
+    ipAllowList: []  # only allow internal connections
+    plan: free 

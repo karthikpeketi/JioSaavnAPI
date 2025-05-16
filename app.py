@@ -7,10 +7,14 @@ import os
 from traceback import print_exc
 from flask_cors import CORS
 from flask_caching import Cache
+from werkzeug.contrib.fixers import ProxyFix
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET", 'thankyoutonystark#weloveyou3000')
 CORS(app)
+
+# Add ProxyFix for better header handling
+app.wsgi_app = ProxyFix(app.wsgi_app)
 
 # Environment configuration
 ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development')
@@ -20,7 +24,7 @@ DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'
 if ENVIRONMENT == 'production':
     default_limits = ["200 per day", "50 per hour"]
 else:
-    default_limits = ["1000 per day", "200 per hour"]  # More relaxed limits for development
+    default_limits = ["1000 per day", "200 per hour"]
 
 limiter = Limiter(
     app=app,
@@ -28,12 +32,28 @@ limiter = Limiter(
     default_limits=default_limits
 )
 
-# Configure caching with different timeouts for prod/dev
-cache_timeout = 300 if ENVIRONMENT == 'production' else 60  # 5 mins for prod, 1 min for dev
-cache = Cache(app, config={
-    'CACHE_TYPE': 'simple',
-    'CACHE_DEFAULT_TIMEOUT': cache_timeout
-})
+# Configure caching with Redis for production
+if ENVIRONMENT == 'production':
+    cache_config = {
+        'CACHE_TYPE': 'redis',
+        'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379/0'),
+        'CACHE_DEFAULT_TIMEOUT': 300
+    }
+else:
+    cache_config = {
+        'CACHE_TYPE': 'simple',
+        'CACHE_DEFAULT_TIMEOUT': 60
+    }
+
+cache = Cache(app, config=cache_config)
+
+# Optimize response compression
+app.config['COMPRESS_ALGORITHM'] = 'gzip'
+app.config['COMPRESS_LEVEL'] = 6
+app.config['COMPRESS_MIN_SIZE'] = 500
+
+# Configure async support
+app.config['ASYNC_MODE'] = 'gevent'
 
 
 @app.route('/')

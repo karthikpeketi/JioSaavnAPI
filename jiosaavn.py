@@ -4,15 +4,34 @@ import helper
 import json
 from traceback import print_exc
 import re
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from functools import lru_cache
 
+# Create a session with connection pooling
+session = requests.Session()
+retry_strategy = Retry(
+    total=3,
+    backoff_factor=0.1,
+    status_forcelist=[500, 502, 503, 504]
+)
+adapter = HTTPAdapter(
+    pool_connections=100,
+    pool_maxsize=100,
+    max_retries=retry_strategy,
+    pool_block=False
+)
+session.mount("http://", adapter)
+session.mount("https://", adapter)
 
+@lru_cache(maxsize=1000)
 def search_for_song(query, lyrics, songdata):
     if query.startswith('http') and 'saavn.com' in query:
         id = get_song_id(query)
         return get_song(id, lyrics)
 
     search_base_url = endpoints.search_base_url+query
-    response = requests.get(search_base_url).text.encode().decode('unicode-escape')
+    response = session.get(search_base_url).text.encode().decode('unicode-escape')
     pattern = r'\(From "([^"]+)"\)'
     response = json.loads(re.sub(pattern, r"(From '\1')", response))
     song_response = response['songs']['data']
@@ -26,11 +45,11 @@ def search_for_song(query, lyrics, songdata):
             songs.append(song_data)
     return songs
 
-
+@lru_cache(maxsize=1000)
 def get_song(id, lyrics):
     try:
         song_details_base_url = endpoints.song_details_base_url+id
-        song_response = requests.get(
+        song_response = session.get(
             song_details_base_url).text.encode().decode('unicode-escape')
         song_response = json.loads(song_response)
         song_data = helper.format_song(song_response[id], lyrics)
@@ -39,19 +58,19 @@ def get_song(id, lyrics):
     except:
         return None
 
-
+@lru_cache(maxsize=100)
 def get_song_id(url):
-    res = requests.get(url, data=[('bitrate', '320')])
+    res = session.get(url, data=[('bitrate', '320')])
     try:
         return(res.text.split('"pid":"'))[1].split('","')[0]
     except IndexError:
         return res.text.split('"song":{"type":"')[1].split('","image":')[0].split('"id":"')[-1]
 
-
+@lru_cache(maxsize=100)
 def get_album(album_id, lyrics):
     songs_json = []
     try:
-        response = requests.get(endpoints.album_details_base_url+album_id)
+        response = session.get(endpoints.album_details_base_url+album_id)
         if response.status_code == 200:
             songs_json = response.text.encode().decode('unicode-escape')
             songs_json = json.loads(songs_json)
