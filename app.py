@@ -1,13 +1,29 @@
 from flask import Flask, request, redirect, jsonify, json
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import time
 import jiosaavn
 import os
 from traceback import print_exc
 from flask_cors import CORS
+from flask_caching import Cache
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET", 'thankyoutonystark#weloveyou3000')
 CORS(app)
+
+# Configure limiter
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
+
+# Configure caching
+cache = Cache(app, config={
+    'CACHE_TYPE': 'simple',
+    'CACHE_DEFAULT_TIMEOUT': 300
+})
 
 
 @app.route('/')
@@ -16,6 +32,7 @@ def home():
 
 
 @app.route('/song/')
+@cache.cached(timeout=300)
 def search():
     lyrics = False
     songdata = True
@@ -62,6 +79,7 @@ def get_song():
 
 
 @app.route('/playlist/')
+@cache.cached(timeout=300)
 def playlist():
     lyrics = False
     query = request.args.get('query')
@@ -81,6 +99,7 @@ def playlist():
 
 
 @app.route('/album/')
+@cache.cached(timeout=300)
 def album():
     lyrics = False
     query = request.args.get('query')
