@@ -7,7 +7,7 @@ import os
 from traceback import print_exc
 from flask_cors import CORS
 from flask_caching import Cache
-from werkzeug.contrib.fixers import ProxyFix
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET", 'thankyoutonystark#weloveyou3000')
