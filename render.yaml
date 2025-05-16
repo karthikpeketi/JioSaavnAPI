@@ -2,6 +2,7 @@ services:
   - type: web
     name: jiosaavn-api-prod
     env: python
+    region: singapore  # Best for Asian traffic
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
@@ -17,6 +18,7 @@ services:
   - type: web
     name: jiosaavn-api-dev
     env: python
+    region: singapore  # Best for Asian traffic
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
