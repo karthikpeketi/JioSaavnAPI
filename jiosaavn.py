@@ -79,18 +79,18 @@ def get_album(album_id, lyrics):
         print(e)
         return None
 
-
+@lru_cache(maxsize=100)
 def get_album_id(input_url):
-    res = requests.get(input_url)
+    res = session.get(input_url)
     try:
         return res.text.split('"album_id":"')[1].split('"')[0]
     except IndexError:
         return res.text.split('"page_id","')[1].split('","')[0]
 
-
+@lru_cache(maxsize=100)
 def get_playlist(listId, lyrics):
     try:
-        response = requests.get(endpoints.playlist_details_base_url+listId)
+        response = session.get(endpoints.playlist_details_base_url+listId)
         if response.status_code == 200:
             songs_json = response.text.encode().decode('unicode-escape')
             songs_json = json.loads(songs_json)
@@ -100,17 +100,17 @@ def get_playlist(listId, lyrics):
         print_exc()
         return None
 
-
+@lru_cache(maxsize=100)
 def get_playlist_id(input_url):
-    res = requests.get(input_url).text
+    res = session.get(input_url).text
     try:
         return res.split('"type":"playlist","id":"')[1].split('"')[0]
     except IndexError:
         return res.split('"page_id","')[1].split('","')[0]
 
-
+@lru_cache(maxsize=1000)
 def get_lyrics(id):
     url = endpoints.lyrics_base_url+id
-    lyrics_json = requests.get(url).text
+    lyrics_json = session.get(url).text
     lyrics_text = json.loads(lyrics_json)
     return lyrics_text['lyrics']
