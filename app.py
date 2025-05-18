@@ -32,20 +32,28 @@ limiter = Limiter(
     default_limits=default_limits
 )
 
-# Configure caching with Redis for production
-if ENVIRONMENT == 'production':
-    cache_config = {
-        'CACHE_TYPE': 'redis',
-        'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379/0'),
-        'CACHE_DEFAULT_TIMEOUT': 300
-    }
-else:
+# Configure caching
+try:
+    if ENVIRONMENT == 'production' and os.environ.get('REDIS_URL'):
+        cache_config = {
+            'CACHE_TYPE': 'redis',
+            'CACHE_REDIS_URL': os.environ.get('REDIS_URL'),
+            'CACHE_DEFAULT_TIMEOUT': 300
+        }
+    else:
+        cache_config = {
+            'CACHE_TYPE': 'simple',
+            'CACHE_DEFAULT_TIMEOUT': 60
+        }
+    cache = Cache(app, config=cache_config)
+except Exception as e:
+    print(f"Warning: Caching initialization failed: {e}")
+    # Fallback to simple cache if Redis fails
     cache_config = {
         'CACHE_TYPE': 'simple',
         'CACHE_DEFAULT_TIMEOUT': 60
     }
-
-cache = Cache(app, config=cache_config)
+    cache = Cache(app, config=cache_config)
 
 # Optimize response compression
 app.config['COMPRESS_ALGORITHM'] = 'gzip'
