@@ -6,7 +6,6 @@ import jiosaavn
 import os
 from traceback import print_exc
 from flask_cors import CORS
-from flask_caching import Cache
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
@@ -32,45 +31,11 @@ limiter = Limiter(
     default_limits=default_limits
 )
 
-# Configure caching
-try:
-    if ENVIRONMENT == 'production' and os.environ.get('REDIS_URL'):
-        cache_config = {
-            'CACHE_TYPE': 'redis',
-            'CACHE_REDIS_URL': os.environ.get('REDIS_URL'),
-            'CACHE_DEFAULT_TIMEOUT': 300
-        }
-    else:
-        cache_config = {
-            'CACHE_TYPE': 'simple',
-            'CACHE_DEFAULT_TIMEOUT': 60
-        }
-    cache = Cache(app, config=cache_config)
-except Exception as e:
-    print(f"Warning: Caching initialization failed: {e}")
-    # Fallback to simple cache if Redis fails
-    cache_config = {
-        'CACHE_TYPE': 'simple',
-        'CACHE_DEFAULT_TIMEOUT': 60
-    }
-    cache = Cache(app, config=cache_config)
-
-# Optimize response compression
-app.config['COMPRESS_ALGORITHM'] = 'gzip'
-app.config['COMPRESS_LEVEL'] = 6
-app.config['COMPRESS_MIN_SIZE'] = 500
-
-# Configure async support
-app.config['ASYNC_MODE'] = 'gevent'
-
-
 @app.route('/')
 def home():
     return redirect("https://cyberboysumanjay.github.io/JioSaavnAPI/")
 
-
 @app.route('/song/')
-@cache.cached(timeout=300)
 def search():
     lyrics = False
     songdata = True
@@ -89,7 +54,6 @@ def search():
             "error": 'Query is required to search songs!'
         }
         return jsonify(error)
-
 
 @app.route('/song/get/')
 def get_song():
@@ -115,9 +79,7 @@ def get_song():
         }
         return jsonify(error)
 
-
 @app.route('/playlist/')
-@cache.cached(timeout=300)
 def playlist():
     lyrics = False
     query = request.args.get('query')
@@ -135,9 +97,7 @@ def playlist():
         }
         return jsonify(error)
 
-
 @app.route('/album/')
-@cache.cached(timeout=300)
 def album():
     lyrics = False
     query = request.args.get('query')
@@ -155,11 +115,9 @@ def album():
         }
         return jsonify(error)
 
-
 @app.route('/lyrics/')
 def lyrics():
     query = request.args.get('query')
-
     if query:
         try:
             if 'http' in query and 'saavn' in query:
@@ -177,14 +135,12 @@ def lyrics():
                 "error": str(e)
             }
             return jsonify(error)
-
     else:
         error = {
             "status": False,
             "error": 'Query containing song link or id is required to fetch lyrics!'
         }
         return jsonify(error)
-
 
 @app.route('/result/')
 def result():
@@ -202,19 +158,16 @@ def result():
             song_id = jiosaavn.get_song_id(query)
             song = jiosaavn.get_song(song_id, lyrics)
             return jsonify(song)
-
         elif '/album/' in query:
             print("Album")
             id = jiosaavn.get_album_id(query)
             songs = jiosaavn.get_album(id, lyrics)
             return jsonify(songs)
-
         elif '/playlist/' or '/featured/' in query:
             print("Playlist")
             id = jiosaavn.get_playlist_id(query)
             songs = jiosaavn.get_playlist(id, lyrics)
             return jsonify(songs)
-
     except Exception as e:
         print_exc()
         error = {
@@ -223,7 +176,6 @@ def result():
         }
         return jsonify(error)
     return None
-
 
 if __name__ == '__main__':
     app.debug = DEBUG

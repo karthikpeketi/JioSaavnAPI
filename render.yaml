@@ -10,11 +10,6 @@ services:
         value: 3.8.0
       - key: ENVIRONMENT
         value: production
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: jiosaavn-cache
-          property: connectionString
     autoDeploy: true
     healthCheckPath: /
     plan: free
@@ -36,9 +31,4 @@ services:
     autoDeploy: true
     healthCheckPath: /
     plan: free
-    branch: develop
-
-  - type: redis
-    name: jiosaavn-cache
-    ipAllowList: []  # only allow internal connections
-    plan: free 
+    branch: develop 
